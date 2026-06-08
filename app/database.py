@@ -115,14 +115,15 @@ class DatabaseManager:
             with self.engine.connect() as conn:
                 res = conn.execute(text(cleaned))
                 cols = list(res.keys())
-                raw = res.fetchmany(self.max_rows)
+                raw = res.fetchmany(self.max_rows + 1)
+                truncated = len(raw) > self.max_rows
                 rows = []
-                for row in raw:
+                for row in raw[:self.max_rows]:
                     d = {}
                     for c,v in zip(cols, row):
                         d[c] = v.isoformat() if hasattr(v,"isoformat") else v
                     rows.append(d)
                 return {"columns":cols,"rows":rows,"row_count":len(rows),
-                        "truncated":len(raw)==self.max_rows,"sql":cleaned}
+                        "truncated":truncated,"sql":cleaned}
         except SQLAlchemyError as e:
             return {"error":str(e),"sql":cleaned}
