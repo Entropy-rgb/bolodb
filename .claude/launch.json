@@ -1,0 +1,11 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "bolodb",
+      "runtimeExecutable": "python",
+      "runtimeArgs": ["main.py", "--no-browser"],
+      "port": 4321
+    }
+  ]
+}
