@@ -31,6 +31,8 @@ from abc import ABC, abstractmethod
 
 import httpx
 
+from backend.app.config import decrypt_api_key
+
 log = logging.getLogger(__name__)
 
 # The model used when the config doesn't name one. Flash is the sweet spot:
@@ -384,8 +386,10 @@ def create_provider(cfg):
     """
     p = cfg.get("provider", "gemini")
     if p == "gemini":
+        # The config carries the key encrypted at rest; it is decrypted only
+        # here, at the point of use.
         return GeminiProvider(
-            api_key=cfg.get("api_keys", {}).get("gemini", ""),
+            api_key=decrypt_api_key(cfg.get("api_keys", {}).get("gemini", "")),
             model=cfg.get("model", ""),
         )
     raise ValueError(

@@ -36,7 +36,10 @@ async def update_config(cfg, providers, req_data):
     if req_data.model is not None and req_data.model in cfgmod.ALLOWED_MODELS:
         cfg["model"] = req_data.model
     if req_data.api_key:
-        cfg["api_keys"]["gemini"] = req_data.api_key
+        # Encrypted at the boundary: the config dict (and therefore the config
+        # file) never holds the key in clear text. Decryption happens only when
+        # the provider is built (create_provider in backend/app/llm.py).
+        cfg["api_keys"]["gemini"] = cfgmod.encrypt_api_key(req_data.api_key)
     elif req_data.clear_api_key:
         cfg["api_keys"]["gemini"] = ""
 

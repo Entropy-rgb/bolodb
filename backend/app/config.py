@@ -5,11 +5,16 @@ which Gemini model to use and the API key for it. The key can also be supplied
 via the ``GEMINI_API_KEY`` environment variable (handy for Docker deployments)
 — an explicit key saved from Settings always wins over the environment.
 
-Stored at ``~/.bolodb/config.json``. The API key is never written to disk in
-clear text: it is encrypted with a per-install secret (``~/.bolodb/.secret``,
-generated once, file mode 0600) before saving and decrypted on load. Older
-config files — plaintext keys and pre-Gemini providers alike — are migrated
-transparently on load.
+Stored at ``~/.bolodb/config.json``. The API key is never held or written in
+clear text by the config layer: it is encrypted with a per-install secret
+(``~/.bolodb/.secret``, generated once, file mode 0600) the moment it enters
+the config — from Settings (:func:`encrypt_api_key` called in
+``controllers/system.py``) or from the ``GEMINI_API_KEY`` env var — and stays
+encrypted inside the in-memory config dict. It is decrypted only at the point
+of use, when the Gemini provider is built (``create_provider`` in
+``backend/app/llm.py`` calls :func:`decrypt_api_key`). Older config files —
+plaintext keys and pre-Gemini providers alike — are migrated transparently on
+load.
 """
 
 import json
@@ -71,21 +76,31 @@ def _fernet():
     return Fernet(key)
 
 
-def _encrypt(value):
-    if not value:
+# Every Fernet token starts with this prefix (base64 of the 0x80 version byte).
+# Used to tell encrypted values apart from legacy plaintext keys.
+_TOKEN_PREFIX = "gAAAA"
+
+
+def encrypt_api_key(plain):
+    """Encrypt an API key for storage. Call this the moment a key enters the
+    config (Settings save, env var) — the config dict only ever holds the
+    encrypted form. Empty in, empty out."""
+    if not plain:
         return ""
-    return _fernet().encrypt(value.encode("utf-8")).decode("ascii")
+    return _fernet().encrypt(plain.encode("utf-8")).decode("ascii")
 
 
-def _decrypt(stored):
-    """Decrypt a stored key. Legacy plaintext values (from configs written
-    before encryption-at-rest) are returned as-is and get encrypted the next
-    time the config is saved."""
+def decrypt_api_key(stored):
+    """Reverse of :func:`encrypt_api_key`, called only at the point of use
+    (building the Gemini provider). Legacy plaintext values pass through
+    unchanged, so pre-encryption configs keep working."""
     if not stored:
         return ""
+    if not stored.startswith(_TOKEN_PREFIX):
+        return stored  # legacy plaintext key
     try:
         return _fernet().decrypt(stored.encode("ascii")).decode("utf-8")
-    except (InvalidToken, ValueError, UnicodeEncodeError):
+    except (InvalidToken, ValueError):
         return stored
 
 
@@ -106,7 +121,11 @@ def load_config():
     raw_keys = d.get("api_keys", {})
     if not isinstance(raw_keys, dict):
         raw_keys = {}
-    cfg["api_keys"] = {"gemini": _decrypt(raw_keys.get("gemini", ""))}
+    stored_key = raw_keys.get("gemini", "")
+    if stored_key and not stored_key.startswith(_TOKEN_PREFIX):
+        # Migrate legacy plaintext keys to encrypted form immediately.
+        stored_key = encrypt_api_key(stored_key)
+    cfg["api_keys"] = {"gemini": stored_key}
 
     # Migration: configs written before the Gemini-only switch may name another
     # provider or a non-Gemini model. Coerce both so the app always starts in a
@@ -117,21 +136,19 @@ def load_config():
         cfg["model"] = DEFAULT_MODEL
 
     # Env fallback: lets deployments inject the key without touching the file.
+    # Encrypted immediately — the config dict never holds a clear-text key.
     if not cfg["api_keys"]["gemini"] and os.environ.get("GEMINI_API_KEY"):
-        cfg["api_keys"]["gemini"] = os.environ["GEMINI_API_KEY"]
+        cfg["api_keys"]["gemini"] = encrypt_api_key(os.environ["GEMINI_API_KEY"])
 
     return cfg
 
 
 def save_config(cfg):
-    """Persist config. The API key is encrypted before it touches disk; the
-    in-memory ``cfg`` the app keeps using is not modified."""
+    """Persist config. ``cfg`` only ever carries the API key in encrypted form
+    (see :func:`encrypt_api_key`), so nothing sensitive is written in clear
+    text."""
     ensure_dir()
-    to_write = json.loads(json.dumps(cfg))  # deep copy; never mutate the caller's cfg
-    keys = to_write.get("api_keys")
-    if isinstance(keys, dict) and keys.get("gemini"):
-        keys["gemini"] = _encrypt(keys["gemini"])
-    CONFIG_FILE.write_text(json.dumps(to_write, indent=2), encoding="utf-8")
+    CONFIG_FILE.write_text(json.dumps(cfg, indent=2), encoding="utf-8")
     _restrict(CONFIG_FILE)
 
 
