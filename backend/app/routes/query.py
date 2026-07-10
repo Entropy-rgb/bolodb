@@ -77,3 +77,15 @@ async def execute(
 ):
     user_id = user_token["user_id"]
     return await ctrl.execute(user_id, db, req)
+
+
+@router.post("/api/explain")
+async def explain(
+    req: RawSQLReq,
+    user_token=Depends(get_current_user),
+    db=Depends(get_db),
+    providers=Depends(get_providers),
+):
+    """Plain-English explanation of a SQL query (reverse text-to-SQL)."""
+    user_id = user_token["user_id"]
+    return await ctrl.explain(user_id, db, providers, req)

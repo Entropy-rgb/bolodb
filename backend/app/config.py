@@ -1,4 +1,13 @@
-"""Local config + path constants."""
+"""Local config + path constants.
+
+BoloDB uses Google Gemini for every AI operation, so the config is small:
+which Gemini model to use and the API key for it. The key can also be supplied
+via the ``GEMINI_API_KEY`` environment variable (handy for Docker deployments)
+— an explicit key saved from Settings always wins over the environment.
+
+Stored at ``~/.bolodb/config.json``. Older config files that named a different
+provider (ollama/claude/openai/groq) are migrated to Gemini on load.
+"""
 
 import json
 import os
@@ -8,11 +17,19 @@ CONFIG_DIR = Path(os.path.expanduser("~")) / ".bolodb"
 CONFIG_FILE = CONFIG_DIR / "config.json"
 KB_FILE = CONFIG_DIR / "knowledge.db"
 
+DEFAULT_MODEL = "gemini-2.5-flash"
+
+# Models the Settings API accepts. Ordered cheapest → most capable.
+ALLOWED_MODELS = (
+    "gemini-2.5-flash-lite",  # cheapest; fine for small, simple databases
+    "gemini-2.5-flash",  # default; best cost/accuracy balance
+    "gemini-2.5-pro",  # most accurate; for large schemas / hard questions
+)
+
 DEFAULTS = {
-    "provider": "ollama",
-    "model": "",
-    "ollama_url": "http://localhost:11434",
-    "api_keys": {"claude": "", "openai": "", "groq": ""},
+    "provider": "gemini",
+    "model": DEFAULT_MODEL,
+    "api_keys": {"gemini": ""},
     "last_db_url": "",
 }
 
@@ -34,17 +51,23 @@ def load_config():
         d = {}
 
     cfg = {**DEFAULTS, **d}
-    # cfg["api_keys"] = {**DEFAULTS["api_keys"], **d.get("api_keys", {})}
+
     raw_keys = d.get("api_keys", {})
     if not isinstance(raw_keys, dict):
         raw_keys = {}
-    cfg["api_keys"] = {**DEFAULTS["api_keys"], **raw_keys}
+    cfg["api_keys"] = {"gemini": raw_keys.get("gemini", "")}
 
-    # Auto-route localhost to host.docker.internal if running in Docker
-    if os.environ.get("RUNNING_IN_DOCKER") and "localhost" in cfg.get("ollama_url", ""):
-        cfg["ollama_url"] = cfg["ollama_url"].replace(
-            "localhost", "host.docker.internal"
-        )
+    # Migration: configs written before the Gemini-only switch may name another
+    # provider or a non-Gemini model. Coerce both so the app always starts in a
+    # valid state instead of erroring on an unknown provider.
+    if cfg.get("provider") != "gemini":
+        cfg["provider"] = "gemini"
+    if not str(cfg.get("model", "")).startswith("gemini-"):
+        cfg["model"] = DEFAULT_MODEL
+
+    # Env fallback: lets deployments inject the key without touching the file.
+    if not cfg["api_keys"]["gemini"] and os.environ.get("GEMINI_API_KEY"):
+        cfg["api_keys"]["gemini"] = os.environ["GEMINI_API_KEY"]
 
     return cfg
 
@@ -55,10 +78,11 @@ def save_config(cfg):
 
 
 def public_config(cfg):
+    """Config as exposed to the frontend — never includes the actual API key,
+    only whether one is set."""
     return {
         "provider": cfg.get("provider"),
         "model": cfg.get("model", ""),
-        "ollama_url": cfg.get("ollama_url"),
         "api_keys_set": {
             k: ("set" if v else "") for k, v in cfg.get("api_keys", {}).items()
         },
