@@ -84,7 +84,7 @@ class FakeProvider:
         self._responses = list(responses)
         self.calls = []
 
-    async def complete(self, system, user, json_mode=False, schema=None):
+    async def complete(self, system, user, json_mode=False, schema=None, **kw):
         self.calls.append(
             {"system": system, "user": user, "json_mode": json_mode, "schema": schema}
         )

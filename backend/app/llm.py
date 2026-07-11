@@ -559,6 +559,9 @@ def build_sql_system_prompt(
     )
 
 
+_SQL_THINKING_BUDGET = 1024  # Cap thinking tokens for SQL generation (cost control)
+
+
 async def generate_sql(
     provider,
     question,
@@ -583,7 +586,13 @@ async def generate_sql(
     )
     user = question if not feedback else f"{question}\n\n{feedback}"
     result = parse_sql_output(
-        await provider.complete(system, user, json_mode=True, schema=SQL_SCHEMA)
+        await provider.complete(
+            system,
+            user,
+            json_mode=True,
+            schema=SQL_SCHEMA,
+            thinking_budget=_SQL_THINKING_BUDGET,
+        )
     )
     if not result["sql"]:
         # Retry once if the model returned nothing usable.
@@ -593,6 +602,7 @@ async def generate_sql(
                 user,
                 json_mode=True,
                 schema=SQL_SCHEMA,
+                thinking_budget=_SQL_THINKING_BUDGET,
             )
         )
     return result

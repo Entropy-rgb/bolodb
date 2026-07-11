@@ -54,7 +54,7 @@ def model_budget(model):
     if "pro" in m:
         return {"tier": "pro", "max_tables": 25, "samples": 2, "max_examples": 5}
     if "gemma" in m:
-        return {"tier": "gemma", "max_tables": 15, "samples": 1, "max_examples": 3}
+        return {"tier": "gemma", "max_tables": 20, "samples": 2, "max_examples": 5}
     return {"tier": "flash", "max_tables": 20, "samples": 2, "max_examples": 5}
 
 
