@@ -1,5 +1,7 @@
+import json
 import logging
 from fastapi import APIRouter, Depends, BackgroundTasks
+from fastapi.responses import StreamingResponse
 from backend.app.dependencies import (
     get_current_user,
     get_db,
@@ -13,6 +15,12 @@ import backend.app.controllers.query as ctrl
 
 log = logging.getLogger(__name__)
 router = APIRouter()
+
+
+async def _format_sse(stream):
+    """Wrap an async generator of dicts into SSE ``data: {...}\\n\\n`` lines."""
+    async for event in stream:
+        yield f"data: {json.dumps(event, default=str)}\n\n"
 
 
 def _safe_save_query(user_id, question, sql, result, confidence):
@@ -56,6 +64,21 @@ async def query(
             confidence=conf_str,
         )
     return out
+
+
+@router.post("/api/query/stream")
+async def query_stream(
+    req: QueryReq,
+    user_token=Depends(get_current_user),
+    db=Depends(get_db),
+    kb=Depends(get_kb),
+    cfg=Depends(get_cfg),
+    providers=Depends(get_providers),
+    session_log=Depends(get_session_log),
+):
+    user_id = user_token["user_id"]
+    stream = ctrl.run_query_stream(user_id, db, kb, cfg, providers, session_log, req)
+    return StreamingResponse(_format_sse(stream), media_type="text/event-stream")
 
 
 @router.post("/api/feedback")
