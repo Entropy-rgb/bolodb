@@ -1,5 +1,5 @@
 <script lang="ts">
-  import type { Turn } from '$lib/types';
+  import type { Turn, ThinkingArtifact } from '$lib/types';
   import { wrongReasons, capitalize } from '$lib/data';
   import ConfidenceBadge from '$lib/components/ui/ConfidenceBadge.svelte';
   import ResultTable from '$lib/components/ui/ResultTable.svelte';
@@ -8,8 +8,8 @@
   import Thinking from '$lib/components/Thinking.svelte';
   import Flywheel from '$lib/components/Flywheel.svelte';
 
-  let { turn, onVerify, isLatest }:
-    { turn: Turn; onVerify: (id: string, verdict: string, reason: string | null) => void; isLatest: boolean } = $props();
+  let { turn, onVerify, isLatest, liveArtifacts }:
+    { turn: Turn; onVerify: (id: string, verdict: string, reason: string | null) => void; isLatest: boolean; liveArtifacts?: ThinkingArtifact[] } = $props();
 
   let showReasons = $state(false);
   let justVerified = $state(false);
@@ -32,7 +32,13 @@
     {#if justVerified}<Flywheel />{/if}
 
     {#if turn.thinking}
-      <Thinking />
+      {#if liveArtifacts}
+        <Thinking artifacts={liveArtifacts} />
+      {:else}
+        <Thinking />
+      {/if}
+    {:else if turn.thinkingArtifacts}
+      <Thinking artifacts={turn.thinkingArtifacts} collapsed />
     {:else if turn.isDirect}
       <!-- Direct SQL execution mode -->
       <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:14px;margin-bottom:15px">
