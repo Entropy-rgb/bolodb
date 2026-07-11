@@ -100,7 +100,7 @@ def test_complete_sends_key_header_and_system_instruction():
     assert out == "hello"
     req = FakeAsyncClient.requests[0]
     assert f"/models/{DEFAULT_GEMINI_MODEL}:generateContent" in req["url"]
-    assert req["headers"]["x-goog-api-key"] == "AIza-test"
+    assert req["headers"]["X-goog-api-key"] == "AIza-test"
     assert req["json"]["system_instruction"]["parts"][0]["text"] == "system prompt"
     assert req["json"]["contents"][0]["parts"][0]["text"] == "user prompt"
 
