@@ -43,10 +43,17 @@ class FakeResponse:
 
 
 class FakeAsyncClient:
-    """Stands in for httpx.AsyncClient; pops queued responses per request."""
+    """Stands in for httpx.AsyncClient; pops queued responses per request.
 
-    queue = []  # list of FakeResponse | Exception
-    requests = []  # recorded {url, headers, json}
+    ``queue`` and ``requests`` are class-level so the ``fake_http`` fixture
+    (which resets them before each test) can control them without needing a
+    reference to each instance.  This is safe because the fixture replaces
+    ``httpx.AsyncClient`` globally, so only one FakeAsyncClient exists per
+    test.
+    """
+
+    queue: list = []
+    requests: list = []
 
     def __init__(self, *args, **kwargs):
         pass
@@ -137,14 +144,16 @@ def test_thinking_budget_sent_only_for_2_5_models():
 # --- retries and errors -----------------------------------------------------
 
 
-def test_retries_transient_500_then_succeeds():
+def test_500_is_not_retried():
     FakeAsyncClient.queue = [
         FakeResponse(500, text="server exploded"),
         FakeResponse(200, _gemini_response("recovered")),
     ]
     p = GeminiProvider(api_key="k")
-    assert _complete(p) == "recovered"
-    assert len(FakeAsyncClient.requests) == 2
+    with pytest.raises(LLMError) as exc:
+        _complete(p)
+    assert "unexpected error" in exc.value.user_message
+    assert len(FakeAsyncClient.requests) == 1  # not retried
 
 
 def test_retries_network_error_then_succeeds():
