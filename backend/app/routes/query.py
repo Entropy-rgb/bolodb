@@ -11,6 +11,7 @@ from backend.app.dependencies import (
 )
 from backend.app.models.api import QueryReq, FeedbackReq, VerifyReq, RawSQLReq
 import backend.app.controllers.query as ctrl
+import backend.app.mongodatabase as mdb
 
 log = logging.getLogger(__name__)
 router = APIRouter()
@@ -28,8 +29,6 @@ async def query(
 ):
     user_id = user_token["user_id"]
     out = await ctrl.run_query(user_id, db, kb, cfg, providers, session_log, req)
-
-    import backend.app.mongodatabase as mdb
 
     if out.get("answered") and out.get("sql"):
         conf = out.get("confidence", "low")
