@@ -11,6 +11,7 @@ from backend.app.dependencies import (
 )
 from backend.app.models.api import QueryReq, FeedbackReq, VerifyReq, RawSQLReq
 import backend.app.controllers.query as ctrl
+import backend.app.mongodatabase as mdb
 
 log = logging.getLogger(__name__)
 router = APIRouter()
@@ -28,8 +29,6 @@ async def query(
 ):
     user_id = user_token["user_id"]
     out = await ctrl.run_query(user_id, db, kb, cfg, providers, session_log, req)
-
-    import backend.app.mongodatabase as mdb
 
     if out.get("answered") and out.get("sql"):
         conf = out.get("confidence", "low")
@@ -77,3 +76,15 @@ async def execute(
 ):
     user_id = user_token["user_id"]
     return await ctrl.execute(user_id, db, req)
+
+
+@router.post("/api/explain")
+async def explain(
+    req: RawSQLReq,
+    user_token=Depends(get_current_user),
+    db=Depends(get_db),
+    providers=Depends(get_providers),
+):
+    """Plain-English explanation of a SQL query (reverse text-to-SQL)."""
+    user_id = user_token["user_id"]
+    return await ctrl.explain(user_id, db, providers, req)

@@ -11,9 +11,9 @@
   import Button from '$lib/components/ui/Button.svelte';
   import Spinner from '$lib/components/ui/Spinner.svelte';
 
-  let { engine, setEngine, modelName, setModelName, verifiedCount, onVerify, onUpdateStarters, toast, realSchema, dbInfo, starters, onDisconnect }:
+  let { engine, modelName, setModelName, verifiedCount, onVerify, onUpdateStarters, toast, realSchema, dbInfo, starters, onDisconnect }:
     {
-      engine: string; setEngine: (e: string) => void;
+      engine: string;
       modelName: string; setModelName: (m: string) => void;
       verifiedCount: number; onVerify: (count?: number) => void;
       onUpdateStarters: (s: string[]) => void; toast: Toast | null;
@@ -186,7 +186,7 @@
         </form>
         <div style="display:flex;align-items:center;justify-content:center;gap:7px;margin-top:10px;font-size:12px;color:var(--faint)">
           <svg width="13" height="13" viewBox="0 0 24 24" fill="none"><rect x="5" y="10.5" width="14" height="9.5" rx="2.4" stroke="currentColor" stroke-width="1.8"/><path d="M8 10.5V8a4 4 0 018 0v2.5" stroke="currentColor" stroke-width="1.8"/></svg>
-          {engine === 'ollama' ? 'Running on your machine — nothing leaves this device.' : 'Only the schema and your question are sent to generate SQL.'}
+          Only the schema and your question are sent to Google Gemini to generate SQL — never your row data.
         </div>
       </div>
     </div>
@@ -195,6 +195,6 @@
   </div>
 
   {#if settingsOpen}
-    <Settings {engine} {setEngine} {modelName} {setModelName} onClose={() => settingsOpen = false} {onDisconnect} />
+    <Settings {modelName} {setModelName} onClose={() => settingsOpen = false} {onDisconnect} />
   {/if}
 </div>
