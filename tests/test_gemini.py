@@ -127,7 +127,7 @@ def test_complete_passes_response_schema_for_structured_output():
     }
 
 
-def test_thinking_budget_sent_only_for_2_5_models():
+def test_thinking_budget_sent_for_supported_models():
     FakeAsyncClient.queue = [FakeResponse(200, _gemini_response("x"))]
     p = GeminiProvider(api_key="k", model="gemini-2.5-flash")
     _complete(p, thinking_budget=0)
@@ -135,9 +135,15 @@ def test_thinking_budget_sent_only_for_2_5_models():
     assert cfg["thinkingConfig"] == {"thinkingBudget": 0}
 
     FakeAsyncClient.queue = [FakeResponse(200, _gemini_response("x"))]
+    p_gemma = GeminiProvider(api_key="k", model="gemma-4-26b-a4b-it")
+    _complete(p_gemma, thinking_budget=0)
+    cfg = FakeAsyncClient.requests[1]["json"]["generationConfig"]
+    assert cfg["thinkingConfig"] == {"thinkingBudget": 0}
+
+    FakeAsyncClient.queue = [FakeResponse(200, _gemini_response("x"))]
     p_old = GeminiProvider(api_key="k", model="gemini-1.5-flash")
     _complete(p_old, thinking_budget=0)
-    cfg = FakeAsyncClient.requests[1]["json"]["generationConfig"]
+    cfg = FakeAsyncClient.requests[2]["json"]["generationConfig"]
     assert "thinkingConfig" not in cfg
 
 

@@ -81,6 +81,7 @@ def test_link_uses_verified_sql_as_boost(small_schema):
         ("gemini-2.5-flash-lite", "lite"),
         ("gemini-2.5-flash", "flash"),
         ("gemini-2.5-pro", "pro"),
+        ("gemma-4-26b-a4b-it", "gemma"),
         ("", "flash"),  # unset model gets the default (flash) budget
     ],
 )
