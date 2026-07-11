@@ -31,6 +31,8 @@
 
 {#if collapsed && !expanded}
   <button onclick={() => expanded = true}
+    aria-expanded={!expanded}
+    aria-label="Expand thinking process"
     style="display:flex;align-items:center;gap:8px;width:100%;padding:10px 14px;border:1px solid var(--border);border-radius:var(--radius-sm);background:var(--surface-2);color:var(--muted);font-size:13px;font-weight:600;cursor:pointer;transition:background .15s;text-align:left">
     <span style="flex-shrink:0;width:22px;height:22px;border-radius:99px;background:var(--brand-tint);color:var(--brand);display:grid;place-items:center;font-size:12px">🧠</span>
     <span style="flex:1">Process completed · {summary.stageCount} stages{summary.repairs > 0 ? ` · ${summary.repairs} repair${summary.repairs > 1 ? 's' : ''}` : ''} · {fmt(summary.elapsed)}</span>
@@ -147,6 +149,8 @@
 
       {#if collapsed && expanded && i === artifacts.length - 1}
         <button onclick={() => expanded = false}
+          aria-expanded={expanded}
+          aria-label="Collapse thinking process"
           style="display:flex;align-items:center;gap:6px;padding:6px 0;font-size:12px;font-weight:600;color:var(--faint);cursor:pointer;background:none;border:none">
           <svg width="12" height="12" viewBox="0 0 24 24" fill="none"><path d="M18 15l-6-6-6 6" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"/></svg>
           Collapse

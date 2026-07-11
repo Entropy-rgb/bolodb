@@ -103,6 +103,7 @@
   async function ask(text?: string) {
     const q = (text || input).trim();
     if (!q) return;
+    if (loading) return;
     input = ''; loading = true;
     const id = Math.random().toString(36).slice(2, 10);
 

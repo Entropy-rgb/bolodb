@@ -27,6 +27,7 @@ export async function streamApiCall(
   onEvent: (event: StreamEvent) => void,
   onDone: (data: any) => void,
   onError: (err: Error) => void,
+  signal?: AbortSignal,
 ): Promise<void> {
   try {
     const response = await fetch(path, {
@@ -34,6 +35,7 @@ export async function streamApiCall(
       headers: { "Content-Type": "application/json" },
       credentials: "include",
       body: JSON.stringify(body),
+      signal,
     });
     if (!response.ok) {
       const data = await response.json().catch(() => ({}));
@@ -44,10 +46,16 @@ export async function streamApiCall(
     const reader = response.body.getReader();
     const decoder = new TextDecoder();
     let buffer = "";
+    let receivedTerminalEvent = false;
 
     while (true) {
       const { done, value } = await reader.read();
-      if (done) break;
+      if (done) {
+        if (!receivedTerminalEvent) {
+          onError(new Error("Stream ended prematurely without a result or error event"));
+        }
+        break;
+      }
 
       buffer += decoder.decode(value, { stream: true });
       const lines = buffer.split("\n");
@@ -59,10 +67,12 @@ export async function streamApiCall(
         try {
           const event = JSON.parse(trimmed.slice(6)) as StreamEvent;
           if (event.kind === "result") {
+            receivedTerminalEvent = true;
             onDone(event.data);
             return;
           }
           if (event.kind === "error") {
+            receivedTerminalEvent = true;
             onError(new Error(event.message));
             return;
           }
@@ -73,6 +83,7 @@ export async function streamApiCall(
       }
     }
   } catch (err) {
+    if (err instanceof Error && err.name === 'AbortError') return;
     onError(err instanceof Error ? err : new Error(String(err)));
   }
 }

@@ -337,6 +337,8 @@ async def run_query_stream(user_id, db, kb, cfg, providers, session_log, req_dat
         try:
             hint_idx = 0
             while True:
+                if time.monotonic() - query_start > _MAX_SECONDS:
+                    raise TimeoutError("SQL generation exceeded maximum time limit")
                 done, _ = await asyncio.wait([llm_task], timeout=2.5)
                 if done:
                     gen_result = llm_task.result()
@@ -349,8 +351,8 @@ async def run_query_stream(user_id, db, kb, cfg, providers, session_log, req_dat
                 hint_idx += 1
         except asyncio.CancelledError:
             raise
-        except Exception:
-            log.warning("SQL generation failed during streaming", exc_info=True)
+        except Exception as e:
+            log.warning("SQL generation failed during streaming: %s", e, exc_info=True)
             yield {"kind": "error", "message": "Query generation failed"}
             return
         finally:
