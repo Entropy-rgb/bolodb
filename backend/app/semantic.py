@@ -108,7 +108,9 @@ def merge_catalog_suggestions(schema_based, llm_based):
             (v.get("column", "") or "").lower(),
             str(v.get("db_value", "")),
         )
-        value_maps.append({**v, "business_label": label_overrides.get(k, v["business_label"])})
+        value_maps.append(
+            {**v, "business_label": label_overrides.get(k, v["business_label"])}
+        )
     out["value_maps"] = value_maps
     return out
 

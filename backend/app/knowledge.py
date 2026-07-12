@@ -204,9 +204,7 @@ class KnowledgeBase:
             rows = conn.execute(
                 f"SELECT {','.join(cols)} FROM {table} WHERE db_id=?", (db_id,)
             ).fetchall()
-            out[key] = [
-                {ok: r[c] for c, ok in zip(cols, out_keys)} for r in rows
-            ]
+            out[key] = [{ok: r[c] for c, ok in zip(cols, out_keys)} for r in rows]
         return out
 
     def catalog_is_empty(self, db_id):

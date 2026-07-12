@@ -62,7 +62,9 @@ LLM_ENRICHMENT = {
             "sql_expression": "SUM(orders.total_amount) WHERE orders.status='completed'",
         }
     ],
-    "synonyms": [{"term": "clients", "entity_type": "table", "entity_name": "customers"}],
+    "synonyms": [
+        {"term": "clients", "entity_type": "table", "entity_name": "customers"}
+    ],
     "value_maps": [
         {
             "table": "customers",
@@ -105,7 +107,9 @@ def test_suggest_from_schema_joins_and_value_maps():
     sug = suggest_from_schema(SCHEMA)
     conds = {j["join_condition"] for j in sug["joins"]}
     assert "orders.customer_id = customers.id" in conds
-    labels = {(v["column"], v["db_value"]): v["business_label"] for v in sug["value_maps"]}
+    labels = {
+        (v["column"], v["db_value"]): v["business_label"] for v in sug["value_maps"]
+    }
     assert labels[("status", "completed")] == "Completed"
     assert labels[("segment", "vip")] == "Vip"  # humanized first guess
 
@@ -114,9 +118,7 @@ def test_merge_prefers_llm_labels():
     merged = merge_catalog_suggestions(suggest_from_schema(SCHEMA), LLM_ENRICHMENT)
     assert merged["metrics"][0]["name"] == "revenue"
     assert merged["synonyms"][0]["term"] == "clients"
-    vip = next(
-        v for v in merged["value_maps"] if v["db_value"] == "vip"
-    )
+    vip = next(v for v in merged["value_maps"] if v["db_value"] == "vip")
     assert vip["business_label"] == "VIP customer"  # LLM label wins
     # a value the LLM didn't touch keeps its humanized guess
     pending = next(v for v in merged["value_maps"] if v["db_value"] == "pending")

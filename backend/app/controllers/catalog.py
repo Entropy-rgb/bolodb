@@ -28,7 +28,9 @@ async def suggest(user_id, db, providers):
         raise HTTPException(409, "No database connected")
     base = suggest_from_schema(db.get_schema(user_id))
     try:
-        enriched = await llm_suggest_catalog(providers.get(), db.schema_as_text(user_id))
+        enriched = await llm_suggest_catalog(
+            providers.get(), db.schema_as_text(user_id)
+        )
     except Exception:
         enriched = {}
     return {"catalog": merge_catalog_suggestions(base, enriched)}

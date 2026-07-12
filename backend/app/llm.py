@@ -611,7 +611,9 @@ def _semantic_block(catalog):
             f"({s.get('entity_type', '')})"
             for s in synonyms
         ]
-        sections.append("Synonyms (business word -> schema entity):\n" + "\n".join(lines))
+        sections.append(
+            "Synonyms (business word -> schema entity):\n" + "\n".join(lines)
+        )
 
     joins = catalog.get("joins") or []
     if joins:
