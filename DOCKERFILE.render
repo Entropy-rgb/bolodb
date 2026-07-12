@@ -39,4 +39,4 @@ RUN addgroup --system bolodb && adduser --system --home /home/bolodb --ingroup b
 
 EXPOSE 80
 
-CMD ["/usr/bin/supervisord", "-c", "/etc/supervisor/conf.d/supervisord.conf"]
+CMD ["/usr/bin/supervisord", "-c", "/etc/supervisor/supervisord.conf"]
