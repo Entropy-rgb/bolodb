@@ -194,7 +194,7 @@
 </script>
 
 <section id="demo" class="demo-section" aria-label="Product demo">
-  <div class="demo-label">{$LL.landing.demoTitle()}</div>
+  <h2 class="demo-label">{$LL.landing.demoTitle()}</h2>
   <h3 class="section-title">See it in action</h3>
 
   <div class="device" bind:this={deviceEl}>

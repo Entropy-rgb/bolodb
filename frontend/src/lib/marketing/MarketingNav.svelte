@@ -39,7 +39,7 @@
 
 <nav class="marketing-nav" class:condensed>
   <div class="nav-inner">
-    <button class="nav-logo" onclick={() => scrollTo("hero")}>
+    <button class="nav-logo" onclick={() => scrollTo("hero")} aria-label="BoloDB — Scroll to top">
       <Logo size={22} sub={false} />
     </button>
 

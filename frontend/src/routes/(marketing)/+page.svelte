@@ -38,11 +38,6 @@
 <svelte:head>
   <title>BoloDB — Talk to your database like a human.</title>
   <meta name="description" content="Ask questions in plain English, get instant answers, and trust the logic with our verifiable AI engine." />
-  <meta property="og:title" content="BoloDB — Talk to your database like a human." />
-  <meta property="og:description" content="No SQL required. Ask questions in plain English, get instant answers, and trust the logic with our verifiable AI engine." />
-  <meta property="og:type" content="website" />
-  <link rel="canonical" href="https://bolodb.com/" />
-  <meta name="twitter:card" content="summary_large_image" />
 </svelte:head>
 
 <Backdrop />
