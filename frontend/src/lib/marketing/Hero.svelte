@@ -14,59 +14,85 @@
   let ctaRow: HTMLElement;
   let trustEl: HTMLElement;
 
+  function revealInstant() {
+    if (h1Line1) h1Line1.style.clipPath = "none";
+    if (h1Line2) h1Line2.style.clipPath = "none";
+    if (subEl) subEl.style.opacity = "1";
+    if (ctaRow) ctaRow.style.opacity = "1";
+    if (trustEl) trustEl.style.opacity = "1";
+  }
+
   $effect(() => {
     if (!browser) return;
     if (motionPrefs.reduced) {
-      if (h1Line1) h1Line1.style.clipPath = "none";
-      if (h1Line2) h1Line2.style.clipPath = "none";
-      if (subEl) subEl.style.opacity = "1";
-      if (ctaRow) ctaRow.style.opacity = "1";
-      if (trustEl) trustEl.style.opacity = "1";
+      revealInstant();
       return;
     }
 
     let cleanup = () => {};
+    let cancelled = false;
+
+    // Safety net: if the GSAP chunk fails to load or the timeline never
+    // finishes (slow network, blocked script, etc.), force the hero back
+    // to visible so copy/CTAs are never stuck at their hidden "from" state.
+    const safetyTimer = window.setTimeout(() => {
+      if (!cancelled) revealInstant();
+    }, 2000);
 
     (async () => {
-      const { loadGsap } = await import("$lib/motion/gsap");
-      const { gsap } = await loadGsap();
+      try {
+        const { loadGsap } = await import("$lib/motion/gsap");
+        const { gsap } = await loadGsap();
 
-      const tl = gsap.timeline({ defaults: { ease: "power3.out", duration: 0.6 } });
+        if (cancelled) return;
 
-      tl.fromTo(
-        h1Line1,
-        { clipPath: "inset(0 0 100% 0)" },
-        { clipPath: "inset(0 0 0% 0)", duration: 0.7 }
-      )
-        .fromTo(
-          h1Line2,
+        const tl = gsap.timeline({
+          defaults: { ease: "power3.out", duration: 0.6 },
+          onComplete: () => window.clearTimeout(safetyTimer),
+        });
+
+        tl.fromTo(
+          h1Line1,
           { clipPath: "inset(0 0 100% 0)" },
-          { clipPath: "inset(0 0 0% 0)", duration: 0.7 },
-          "-=0.4"
+          { clipPath: "inset(0 0 0% 0)", duration: 0.7 }
         )
-        .fromTo(
-          subEl,
-          { y: 16, opacity: 0 },
-          { y: 0, opacity: 1, duration: 0.5 },
-          "-=0.25"
-        )
-        .fromTo(
-          ctaRow,
-          { y: 16, opacity: 0 },
-          { y: 0, opacity: 1, duration: 0.5 },
-          "-=0.2"
-        )
-        .fromTo(
-          trustEl,
-          { y: 12, opacity: 0 },
-          { y: 0, opacity: 1, duration: 0.5 },
-          "-=0.15"
-        );
+          .fromTo(
+            h1Line2,
+            { clipPath: "inset(0 0 100% 0)" },
+            { clipPath: "inset(0 0 0% 0)", duration: 0.7 },
+            "-=0.4"
+          )
+          .fromTo(
+            subEl,
+            { y: 16, opacity: 0 },
+            { y: 0, opacity: 1, duration: 0.5 },
+            "-=0.25"
+          )
+          .fromTo(
+            ctaRow,
+            { y: 16, opacity: 0 },
+            { y: 0, opacity: 1, duration: 0.5 },
+            "-=0.2"
+          )
+          .fromTo(
+            trustEl,
+            { y: 12, opacity: 0 },
+            { y: 0, opacity: 1, duration: 0.5 },
+            "-=0.15"
+          );
 
-      cleanup = () => tl.kill();
+        cleanup = () => tl.kill();
+      } catch (err) {
+        console.error("Hero animation failed to load, showing content instantly", err);
+        if (!cancelled) revealInstant();
+      }
     })();
 
-    return () => cleanup();
+    return () => {
+      cancelled = true;
+      window.clearTimeout(safetyTimer);
+      cleanup();
+    };
   });
 </script>
 

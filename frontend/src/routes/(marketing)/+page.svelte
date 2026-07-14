@@ -36,8 +36,11 @@
 </script>
 
 <svelte:head>
-  <title>BoloDB — Talk to your database like a human.</title>
-  <meta name="description" content="Ask questions in plain English, get instant answers, and trust the logic with our verifiable AI engine." />
+  <title>BoloDB — Talk to Your Database Like a Human | AI Data Analyst</title>
+  <meta
+    name="description"
+    content="BoloDB is the AI data analyst you can trust. Ask questions in plain English and get verified, SQL-backed answers from PostgreSQL, MySQL, SQL Server, or SQLite — read-only, no code required."
+  />
 </svelte:head>
 
 <Backdrop />
