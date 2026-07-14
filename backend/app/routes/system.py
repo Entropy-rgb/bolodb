@@ -26,11 +26,8 @@ async def state(
 
 
 @router.get("/api/health")
-async def health(
-    cfg=Depends(get_cfg),
-    providers=Depends(get_providers),
-):
-    return await ctrl.get_health(cfg, providers)
+async def health():
+    return await ctrl.get_health()
 
 
 @router.get("/api/config/public")
@@ -49,4 +46,4 @@ async def update_config(
     cfg=Depends(get_cfg),
     providers=Depends(get_providers),
 ):
-    return await ctrl.update_config(cfg, providers, req)
+    return await ctrl.update_config(user_token["user_id"], cfg, providers, req)
