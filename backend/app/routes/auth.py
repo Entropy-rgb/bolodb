@@ -1,12 +1,18 @@
-from fastapi import APIRouter, Request, Depends, Cookie, HTTPException
+from fastapi import APIRouter, Depends, Cookie, HTTPException
 from fastapi.responses import JSONResponse
-from backend.app.models.user import UserSignup, UserLogin, GoogleLogin
+from pydantic import BaseModel
+from backend.app.models.user import UserSignup, UserLogin, SupabaseLogin
 import backend.app.controllers.auth
 from backend.app.dependencies import get_current_user
-from backend.app.secrets import get_jwt_secret, get_cookie_secure, get_google_client_id
+from backend.app.secrets import get_jwt_secret, get_cookie_secure
 import jwt
 
 router = APIRouter(prefix="/api/auth", tags=["auth"])
+
+
+class ChangePasswordReq(BaseModel):
+    old_password: str
+    new_password: str
 
 
 @router.post("/refresh")
@@ -74,17 +80,12 @@ async def signup(user_data: UserSignup):
     return JSONResponse({"message": "Signup Successful"}, status_code=201)
 
 
-@router.post("/google")
-async def google_auth(google_data: GoogleLogin):
-    client_id = get_google_client_id()
-    if not client_id:
-        raise HTTPException(status_code=500, detail="Google sign-in is not configured")
-    if google_data.client_id != client_id:
-        raise HTTPException(status_code=400, detail="Client ID mismatch")
-    tokens = await backend.app.controllers.auth.google_login(
-        google_data.id_token, google_data.client_id
+@router.post("/supabase-google")
+async def supabase_google_auth(supabase_data: SupabaseLogin):
+    tokens = await backend.app.controllers.auth.supabase_google_login(
+        supabase_data.access_token
     )
-    response = JSONResponse({"message": "Google sign-in successful"})
+    response = JSONResponse({"message": "Supabase Google sign-in successful"})
     secure = get_cookie_secure()
     response.set_cookie(
         key="access_token",
@@ -106,15 +107,20 @@ async def google_auth(google_data: GoogleLogin):
 @router.post("/logout")
 async def logout():
     response = JSONResponse({"message": "Logout Successfull"})
-    response.delete_cookie("access_token")
-    response.delete_cookie("refresh_token")
+    secure = get_cookie_secure()
+    response.delete_cookie("access_token", httponly=True, secure=secure, samesite="lax")
+    response.delete_cookie(
+        "refresh_token", httponly=True, secure=secure, samesite="lax"
+    )
     return response
 
 
 @router.post("/change-password")
-async def change_password(request: Request, user_token=Depends(get_current_user)):
-    body = await request.json()
+async def change_password(
+    req: ChangePasswordReq,
+    user_token=Depends(get_current_user),
+):
     await backend.app.controllers.auth.change_password(
-        user_token["user_id"], body["old_password"], body["new_password"]
+        user_token["user_id"], req.old_password, req.new_password
     )
     return JSONResponse({"message": "Password changed successfully"})

@@ -26,6 +26,7 @@
   let {
     engine,
     modelName,
+    apiKeySet,
     setModelName,
     verifiedCount,
     onVerify,
@@ -35,11 +36,14 @@
     dbInfo,
     starters,
     onDisconnect,
+    setApiKeyStatus,
     onActiveConversationChange = (_id: string | null) => {},
   }: {
     engine: string;
     modelName: string;
+    apiKeySet: boolean;
     setModelName: (m: string) => void;
+    setApiKeyStatus: (v: boolean) => void;
     verifiedCount: number;
     onVerify: (count?: number) => void;
     onUpdateStarters: (s: string[]) => void;
@@ -308,20 +312,29 @@
         });
       },
       (err: Error) => {
+        const errMsg = err.message || "Request failed";
+        const isApiKeyError =
+          errMsg.toLowerCase().includes("api key") ||
+          errMsg.toLowerCase().includes("no gemini");
         onUpdateTurn(id, {
           thinking: false,
-          restatement: "Something went wrong — please try again.",
+          restatement: isApiKeyError
+            ? "API key not configured — open Settings to add one."
+            : "Something went wrong — please try again.",
           sql: "",
           columns: [],
           rows: [],
           confidence: "low" as const,
-          reason: err.message || "Request failed",
+          reason: errMsg,
           basedOn: false,
           query_id: id,
           verdict: null,
           thinkingArtifacts: [...artifacts],
           timestamp: ts,
         });
+        if (isApiKeyError) {
+          settingsOpen = true;
+        }
       },
       signal,
     );
@@ -470,6 +483,7 @@
   <Sidebar
     {engine}
     {modelName}
+    {apiKeySet}
     {verifiedCount}
     onSettings={() => (settingsOpen = true)}
     schema={realSchema}
@@ -652,6 +666,7 @@
       onClose={() => { settingsOpen = false; openCatalogTrigger = 0; }}
       {onDisconnect}
       {openCatalogTrigger}
+      onApiKeySaved={setApiKeyStatus}
     />
   {/if}
 </div>
